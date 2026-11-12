@@ -1,0 +1,52 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-and-test:
+    name: ${{ matrix.os }} (Release)
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build build -j 4
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+  sanitizers:
+    # AddressSanitizer catches out-of-bounds reads/writes and use-after-free;
+    # UndefinedBehaviorSanitizer catches things like signed overflow. Both
+    # matter more once HNSW starts juggling graph links and raw indices.
+    name: ubuntu (ASan + UBSan)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DECHO_SANITIZE=ON -DCMAKE_CXX_COMPILER=clang++
+      - name: Build
+        run: cmake --build build -j 4
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+  real-songs:
+    # End-to-end check on the actual VibeCanvas data: download, build vectors,
+    # run a query, and time brute force.
+    name: real song data
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare songs
+        run: python3 scripts/prepare_songs.py
+      - name: Build
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DECHO_BUILD_TESTS=OFF && cmake --build build -j 4
+      - name: Query
+        run: ./build/echo_query data/songs.tsv "blinding lights"
