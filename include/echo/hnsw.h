@@ -48,6 +48,12 @@ public:
     Metric metric() const { return metric_; }
     const HnswParams& params() const { return params_; }
 
+    // Returns up to k approximate nearest neighbors of `query`, closest
+    // first. Same contract as BruteForceIndex::search, so the two can be
+    // swapped and compared. `ef` overrides params().ef_search when nonzero.
+    std::vector<Neighbor> search(std::span<const float> query, std::size_t k,
+                                 std::int64_t exclude = -1, std::size_t ef = 0) const;
+
     // The vectors that `node` links to. Exposed for tests and debugging.
     const std::vector<std::uint32_t>& neighbors(std::uint32_t node) const {
         return links_.at(node);

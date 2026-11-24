@@ -33,6 +33,31 @@ HnswIndex::HnswIndex(const Dataset& data, Metric metric, HnswParams params)
     for (std::uint32_t i = 0; i < data_.size(); ++i) insert(i);
 }
 
+std::vector<Neighbor> HnswIndex::search(std::span<const float> query, std::size_t k,
+                                        std::int64_t exclude, std::size_t ef) const {
+    if (query.size() != data_.dim()) {
+        throw std::invalid_argument("query has " + std::to_string(query.size()) +
+                                    " values, index expects " + std::to_string(data_.dim()));
+    }
+    if (k == 0 || data_.empty()) return {};
+
+    std::vector<float> q(query.begin(), query.end());
+    if (metric_ == Metric::Cosine) normalize(q);
+
+    // Ask for one extra result when excluding, so dropping it still leaves k.
+    const std::size_t want = k + (exclude >= 0 ? 1 : 0);
+    const std::size_t beam = std::max(ef ? ef : params_.ef_search, want);
+
+    std::vector<Neighbor> out;
+    out.reserve(k);
+    for (const auto& n : search_layer(q, entry_point_, beam)) {
+        if (static_cast<std::int64_t>(n.index) == exclude) continue;
+        out.push_back(n);
+        if (out.size() == k) break;
+    }
+    return out;
+}
+
 void HnswIndex::insert(std::uint32_t node) {
     if (node == 0) return;  // the first vector has nobody to link to yet
 
