@@ -18,6 +18,7 @@ add_library(echo
   src/distance.cpp
   src/dataset.cpp
   src/brute_force.cpp
+  src/hnsw.cpp
 )
 target_include_directories(echo PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_options(echo PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow)
@@ -52,6 +53,7 @@ if(ECHO_BUILD_TESTS)
     tests/test_distance.cpp
     tests/test_dataset.cpp
     tests/test_brute_force.cpp
+    tests/test_hnsw.cpp
   )
   target_link_libraries(echo_tests PRIVATE echo GTest::gtest_main)
   target_compile_definitions(echo_tests PRIVATE ECHO_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/data")
