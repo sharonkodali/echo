@@ -24,7 +24,7 @@ Dataset number_line(std::size_t n) {
 }
 
 
-Dataset random_data(std::size_t n, std::size_t dim, unsigned seed) {
+Dataset gaussian_data(std::size_t n, std::size_t dim, unsigned seed) {
     std::mt19937 rng(seed);
     std::normal_distribution<float> gauss;
     Dataset ds(dim);
@@ -104,7 +104,7 @@ TEST(Hnsw, EdgeCases) {
 }
 
 TEST(Hnsw, ResultsAreSortedClosestFirst) {
-    const auto data = random_data(1000, 8, 3);
+    const auto data = gaussian_data(1000, 8, 3);
     const HnswIndex index(data, Metric::L2);
     const auto r = index.search(data.row(0), 10);
     EXPECT_TRUE(std::is_sorted(r.begin(), r.end()));
@@ -114,8 +114,8 @@ TEST(Hnsw, ResultsAreSortedClosestFirst) {
 // as the exact brute-force answer key.
 TEST(Hnsw, HighRecallAgainstBruteForce) {
     for (const Metric metric : {Metric::L2, Metric::Cosine}) {
-        const auto data = random_data(2000, 16, 11);
-        const auto queries = random_data(100, 16, 12);
+        const auto data = gaussian_data(2000, 16, 11);
+        const auto queries = gaussian_data(100, 16, 12);
         const echo::BruteForceIndex exact(data, metric);
         const HnswIndex approx(data, metric, HnswParams{.M = 16, .ef_construction = 100});
 
@@ -130,8 +130,8 @@ TEST(Hnsw, HighRecallAgainstBruteForce) {
 }
 
 TEST(Hnsw, LargerEfGivesAtLeastAsMuchRecall) {
-    const auto data = random_data(2000, 16, 21);
-    const auto queries = random_data(50, 16, 22);
+    const auto data = gaussian_data(2000, 16, 21);
+    const auto queries = gaussian_data(50, 16, 22);
     const echo::BruteForceIndex exact(data, Metric::L2);
     const HnswIndex approx(data, Metric::L2, HnswParams{.M = 8, .ef_construction = 64});
     auto avg_recall = [&](std::size_t ef) {
